@@ -4,6 +4,8 @@ require 'set'
 module Sprockets
   class SourceMapProcessor
     def self.call(input)
+      context = input[:environment].context_class.new(input)
+
       case input[:content_type]
       when "application/js-sourcemap+json"
         accept = "application/javascript"
@@ -33,8 +35,17 @@ module Sprockets
         links << uri
       end
 
-      json = env.encode_json_source_map(map, filename: asset.logical_path)
+      map.each do |m|
+        fingerprint = m[:source][/-([0-9a-f]{7,128})\.[^.]+\z/, 1]
+        path = if fingerprint
+                 m[:source].sub("-#{fingerprint}", "")
+               else
+                 m[:source]
+               end
 
+        m[:source] = context.asset_path(path)
+      end
+      json = env.encode_json_source_map(map, filename: context.asset_path(asset.logical_path))
       { data: json, links: links }
     end
   end

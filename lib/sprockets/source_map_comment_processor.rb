@@ -2,6 +2,8 @@
 module Sprockets
   class SourceMapCommentProcessor
     def self.call(input)
+      context = input[:environment].context_class.new(input)
+
       case input[:content_type]
       when "application/javascript"
         comment = "\n//# sourceMappingURL=%s"
@@ -22,7 +24,7 @@ module Sprockets
       map = env.load(uri)
 
       asset.metadata.merge(
-        data: asset.source + (comment % map.digest_path),
+        data: asset.source + (comment % context.asset_path(map.logical_path)),
         links: asset.links + [asset.uri, map.uri]
       )
     end
